@@ -87,8 +87,8 @@ if uploaded_files:
                 if test_type == 'CV':
                     with tab1:
                         st.subheader(f"Cyclic Voltammetry: {filename} [{sheet}]")
-                        pot_col = next((c for c in df.columns if any(k in str(c).lower() for k in ['pot', 'volt', 'ewe'])), df.columns[0])
-                        curr_col = next((c for c in df.columns if any(k in str(c).lower() for k in ['curr', 'amp', '<i>'])), df.columns[1])
+                        pot_col = next((c for c in df.columns if any(k in str(c).lower() for k in ['pot', 'volt', 'ewe', 'e/v'])), df.columns[0])
+                        curr_col = next((c for c in df.columns if any(k in str(c).lower() for k in ['curr', 'amp', '<i>', 'i/a'])), df.columns[1])
                         
                         x = pd.to_numeric(df[pot_col], errors='coerce').dropna()
                         y = pd.to_numeric(df[curr_col], errors='coerce').dropna()
@@ -108,8 +108,9 @@ if uploaded_files:
                 elif test_type == 'GCD':
                     with tab2:
                         st.subheader(f"Galvanostatic Charge-Discharge: {filename} [{sheet}]")
-                        time_col = next((c for c in df.columns if any(k in str(c).lower() for k in ['time', 'sec', '(s)'])), df.columns[0])
-                        pot_col = next((c for c in df.columns if any(k in str(c).lower() for k in ['pot', 'volt', 'ewe'])), df.columns[1])
+                        time_col = next((c for c in df.columns if any(k in str(c).lower() for k in ['time', 't/s', 'time /s'])), df.columns[0])
+pot_col = next((c for c in df.columns if any(k in str(c).lower() for k in ['pot', 'volt', 'e/v', 'potential'])), df.columns[1])
+curr_col = next((c for c in df.columns if any(k in str(c).lower() for k in ['curr', 'i/ma', 'amp'])), df.columns[2])
                         
                         clean_df = df[[time_col, pot_col]].apply(pd.to_numeric, errors='coerce').dropna()
                         time = clean_df[time_col].values
