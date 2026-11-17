@@ -107,6 +107,7 @@ if uploaded_files:
                 # --------------------------------------------------------------
                 elif test_type == 'GCD':
                     with tab2:
+                        
                 st.subheader(f"Galvanostatic Charge-Discharge: {filename} [{sheet}]")
                         time_col = next((c for c in df.columns if any(k in str(c).lower() for k in ['time', 't/s', 'time /s'])), df.columns[0])
                         curr_col = next((c for c in df.columns if any(k in str(c).lower() for k in ['curr', 'i/ma', 'i /ma', 'amp'])), df.columns[1])
