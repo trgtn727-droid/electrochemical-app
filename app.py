@@ -107,10 +107,9 @@ if uploaded_files:
                 # --------------------------------------------------------------
                 elif test_type == 'GCD':
                     with tab2:
-                        
-                st.subheader(f"Galvanostatic Charge-Discharge: {filename} [{sheet}]")
+                        st.subheader(f"Galvanostatic Charge-Discharge: {filename} [{sheet}]")
                         time_col = next((c for c in df.columns if any(k in str(c).lower() for k in ['time', 't/s', 'time /s'])), df.columns[0])
-                        curr_col = next((c for c in df.columns if any(k in str(c).lower() for k in ['curr', 'i/ma', 'i /ma', 'amp'])), df.columns[1])
+                       
                         pot_col = next((c for c in df.columns if any(k in str(c).lower() for k in ['pot', 'volt', 'e/v', 'e /v', 'potential'])), df.columns[2])
                         
                         clean_df = df[[time_col, pot_col]].apply(pd.to_numeric, errors='coerce').dropna()
