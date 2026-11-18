@@ -51,7 +51,6 @@ def parse_uploaded_file(uploaded_file, skiprows=0):
     else:
         df = pd.read_csv(uploaded_file, sep=None, engine="python", skiprows=skiprows)
     
-    # Drop completely empty columns and coerce numeric
     df = df.dropna(axis=1, how="all")
     numeric_cols = []
     for col in df.columns:
@@ -75,7 +74,6 @@ if uploaded_files:
     
     for idx, f in enumerate(uploaded_files):
         with cols[idx % 4]:
-            # Try to guess scan rate from filename if digits exist
             digits = "".join([c if c.isdigit() or c == "." else " " for c in f.name]).split()
             default_sr = float(digits[0]) if digits and 0.1 <= float(digits[0]) <= 5000 else (idx + 1) * 10.0
             sr = st.number_input(
@@ -89,7 +87,6 @@ if uploaded_files:
 
     if st.button("🚀 Run Complete CV Modeling & Generate Report", type="primary"):
         try:
-            # Sort files by scan rate ascending
             paired = sorted(zip(file_scan_rates_mv, uploaded_files), key=lambda x: x[0])
             scan_rates_mv = np.array([p[0] for p in paired])
             scan_rates_vs = scan_rates_mv / 1000.0
@@ -101,7 +98,6 @@ if uploaded_files:
                 v_raw, i_raw = parse_uploaded_file(f, skiprows=skip_rows)
                 raw_data.append((v_raw, i_raw))
 
-            # Unified potential grid across overlapping window
             v_min = max(d[0].min() for d in raw_data)
             v_max = min(d[0].max() for d in raw_data)
             if v_min >= v_max:
@@ -123,7 +119,6 @@ if uploaded_files:
                 v_anodic, i_anodic = v_raw[anodic_mask], i_raw[anodic_mask]
                 v_cathodic, i_cathodic = v_raw[cathodic_mask], i_raw[cathodic_mask]
 
-                # Anodic peak
                 epa, ipa = np.nan, np.nan
                 if len(i_anodic) > 5:
                     prom = (np.max(i_anodic) - np.min(i_anodic)) * 0.05
@@ -132,7 +127,6 @@ if uploaded_files:
                         max_p = peaks_a[np.argmax(i_anodic[peaks_a])]
                         epa, ipa = v_anodic[max_p], i_anodic[max_p]
 
-                # Cathodic peak
                 epc, ipc = np.nan, np.nan
                 if len(i_cathodic) > 5:
                     prom_c = (np.max(i_cathodic) - np.min(i_cathodic)) * 0.05
@@ -169,7 +163,6 @@ if uploaded_files:
             summary_df = pd.DataFrame(peak_records)
             cs_values = summary_df["Specific_Capacitance_F_g"].values
 
-            # b-value regression
             b_values = np.zeros(len(voltages))
             r2_values = np.zeros(len(voltages))
             log_v = np.log(scan_rates_vs)
@@ -179,7 +172,6 @@ if uploaded_files:
                 b_values[i] = slope
                 r2_values[i] = r_val ** 2
 
-            # Dunn's method separation
             k1 = np.zeros(len(voltages))
             k2 = np.zeros(len(voltages))
             sqrt_v = np.sqrt(scan_rates_vs)
@@ -207,7 +199,6 @@ if uploaded_files:
                 "Capacitive_Contribution_%": cap_pct
             })
 
-            # Key Metrics Banner
             mean_b = float(np.mean(b_values))
             mean_cap_pct = float(np.mean(cap_pct))
             retention = (cs_values[-1] / cs_values[0]) * 100.0 if cs_values[0] > 0 else 0.0
@@ -225,7 +216,6 @@ if uploaded_files:
             m3.metric(f"Capacitive Share @ {target_scan_rate_mv:.0f} mV/s", f"{mean_cap_pct:.1f}%")
             m4.metric("Max Cs / Rate Retention", f"{cs_values[0]:.1f} F/g ({retention:.1f}%)")
 
-            # 4-Panel Publication Figure
             fig, axes = plt.subplots(2, 2, figsize=(14, 10))
 
             for j, (v_raw, i_raw) in enumerate(raw_data):
@@ -271,21 +261,16 @@ if uploaded_files:
             plt.tight_layout()
             st.pyplot(fig)
 
-            # Data Tables
             st.subheader("4. Extracted Peaks & Specific Capacitance Summary")
             st.dataframe(summary_df, use_container_width=True)
 
-            # Scientific Interpretation & Literature Comparison
-            st.subheader("5. Scientific Interpretation & Literature Benchmarks")
+            st.subheader("5. Scientific Interpretation & Kinetic Analysis")
             interpretation_md = f"""
 - **Mechanism Diagnosis:** Mean b-value is **{mean_b:.3f}** (**{mech_label}**), with **{mean_cap_pct:.1f}%** surface-controlled capacitive contribution and **{100.0 - mean_cap_pct:.1f}%** diffusion-controlled contribution at **{target_scan_rate_mv:.0f} mV/s**.
 - **Double-Layer & Rate Behavior:** Operating potential window Delta V = {delta_V:.2f} V. Specific capacitance shifts from **{cs_values[0]:.2f} F/g** ({scan_rates_mv[0]:.0f} mV/s) to **{cs_values[-1]:.2f} F/g** ({scan_rates_mv[-1]:.0f} mV/s), retaining **{retention:.1f}%** of initial capacitance. For EDLCs, interfacial capacitance follows series Helmholtz and diffuse layers (1/C_dl = 1/C_H + 1/C_diff).
-- **Literature Benchmark 1 (EDLC Architectures):** Hierarchical porous carbons and graphene electrodes exhibit quasi-rectangular CVs, b approx 0.90 to 1.00, >85% capacitive share, and Cs = 150 to 320 F g^-1 in aqueous electrolytes (Simon & Gogotsi, Nature Materials, 2020, 19, 1151-1163).
-- **Literature Benchmark 2 (Pseudocapacitive & Ternary Metal Oxides):** Transition/ternary metal oxides (e.g., NiCo2O4, MnCo2O4) show distinct redox peaks, b approx 0.65 to 0.85, Cs = 400 to 1200 F g^-1, and 50 to 75% retention over 10x scan rate increases (Fleischmann et al., Chemical Reviews, 2020, 120, 6738-6782; Shao et al., Chemical Reviews, 2018, 118, 9233-9280).
 """
             st.markdown(interpretation_md)
 
-            # Export ZIP Bundle
             zip_buffer = io.BytesIO()
             img_buffer = io.BytesIO()
             fig.savefig(img_buffer, format="png", dpi=300)
@@ -293,7 +278,7 @@ if uploaded_files:
                 zf.writestr("1_Peak_and_Capacitance_Summary.csv", summary_df.to_csv(index=False))
                 zf.writestr("2_Potential_Resolved_Kinetics.csv", kinetics_df.to_csv(index=False))
                 zf.writestr("3_CV_Comprehensive_Analysis.png", img_buffer.getvalue())
-                zf.writestr("4_Interpretation_and_Benchmarks.md", interpretation_md)
+                zf.writestr("4_Interpretation_Report.md", interpretation_md)
 
             st.download_button(
                 label="📥 Download Complete Results Bundle (CSV + 300 DPI Figure + Report)",
